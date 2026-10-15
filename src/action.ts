@@ -3,16 +3,18 @@ import type { KBarHistory } from './history.js';
 
 export class Command {
   private item?: HistoryItem;
-  readonly history?: { undo: () => Promise<void>; redo: () => Promise<void> };
-  constructor(private execute: () => void | Undo | Promise<void | Undo>, private stack?: KBarHistory) {
-    if (stack) this.history = {
+  constructor(private execute: () => void | Undo | Promise<void | Undo>, private getHistory: () => KBarHistory | undefined = () => undefined) {}
+  get history() {
+    const stack = this.getHistory();
+    return stack ? {
       undo: () => this.item ? stack.undo(this.item) : Promise.resolve(),
       redo: () => this.item ? stack.redo(this.item) : Promise.resolve(),
-    };
+    } : undefined;
   }
   async perform() {
     const undo = await this.execute();
-    if (typeof undo === 'function' && this.stack) this.item = this.stack.add({ perform: this.execute, undo });
+    const stack = this.getHistory();
+    if (typeof undo === 'function' && stack) this.item = stack.add({ perform: this.execute, undo });
   }
 }
 
@@ -29,7 +31,7 @@ export class ActionImpl implements Action {
   readonly icon?: unknown;
   readonly command?: Command;
   readonly perform?: () => Promise<void>;
-  constructor(action: Action, private lookup: () => ReadonlyMap<string, ActionImpl>, history?: KBarHistory) {
+  constructor(action: Action, private lookup: () => ReadonlyMap<string, ActionImpl>, history?: () => KBarHistory | undefined) {
     this.id = action.id; this.name = action.name; this.subtitle = action.subtitle;
     this.keywords = action.keywords; this.shortcut = action.shortcut ? [...action.shortcut] : undefined;
     this.section = typeof action.section === 'object' ? { ...action.section } : action.section;

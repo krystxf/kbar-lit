@@ -15,7 +15,7 @@ export class KBarAnimator extends LitElement {
   private appearance?: Animation;
   private resize?: Animation;
   private outside = (event: PointerEvent) => {
-    if (this.kbar.state?.open && !this.disableCloseOnOuterClick && !event.composedPath().includes(this)) this.kbar.store?.hide();
+    if (!this.closest('kbar-portal, [data-kbar-portal]') && this.kbar.state?.open && !this.disableCloseOnOuterClick && !event.composedPath().includes(this)) this.kbar.store?.hide();
   };
   connectedCallback() { super.connectedCallback(); this.ownerDocument.addEventListener('pointerdown', this.outside); }
   disconnectedCallback() {
@@ -25,6 +25,7 @@ export class KBarAnimator extends LitElement {
   protected updated() {
     const state = this.kbar.state;
     if (!state) return;
+    this.style.display = state.visualState === VisualState.hidden ? 'none' : '';
     const reduced = this.ownerDocument.defaultView!.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const enter = reduced ? 0 : this.kbar.options?.animations?.enterMs ?? 0;
     const exit = reduced ? 0 : this.kbar.options?.animations?.exitMs ?? 0;

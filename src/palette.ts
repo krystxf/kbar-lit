@@ -7,7 +7,7 @@ import type { KBarProvider } from './provider.js';
 /** Convenience composition; use the individual elements for a custom layout. */
 export class KBarPalette extends LitElement {
   static properties = { store: { attribute: false }, actions: { attribute: false }, options: { attribute: false }, onRender: { attribute: false }, placeholder: {} };
-  static styles = css`:host { font-family: var(--kbar-font, system-ui, sans-serif); font-size: 14px; } footer { border-top: 1px solid var(--kbar-border, #e8e9ed); padding: 12px 22px; font-size: 11px; color: var(--kbar-muted, #707586); }`;
+  static styles = css`:host { font-family: var(--kbar-font, system-ui, sans-serif); font-size: 14px; } .footer { border-top: 1px solid var(--kbar-border, #e8e9ed); padding: 12px 22px; font-size: 11px; color: var(--kbar-muted, #707586); }`;
   store = new KBarStore();
   actions?: readonly Action[];
   options?: KBarOptions;
@@ -23,7 +23,7 @@ export class KBarPalette extends LitElement {
         <slot name="header"></slot>
         <kbar-search .defaultPlaceholder=${this.placeholder}></kbar-search>
         <kbar-results .onRender=${this.onRender}></kbar-results>
-        <slot name="footer"><footer>↑ ↓ Navigate &nbsp; ↵ Select &nbsp; Esc Close</footer></slot>
+        <slot name="footer"><div class="footer">↑ ↓ Navigate &nbsp; ↵ Select &nbsp; Esc Close</div></slot>
       </kbar-animator></kbar-positioner></kbar-portal>
     </kbar-provider>`;
   }

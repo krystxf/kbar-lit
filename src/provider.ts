@@ -24,16 +24,14 @@ export class KBarProvider extends LitElement {
   private boundActions: readonly Action[] = [];
   private wasOpen = false;
   private search = '';
-  private ownStore = this.store;
+  private boundOptions?: Readonly<KBarOptions>;
   connectedCallback() { super.connectedCallback(); this.bind(); }
   disconnectedCallback() {
     super.disconnectedCallback(); this.unsubscribe?.(); this.removeKeys?.(); this.boundStore = undefined;
   }
   protected willUpdate(changed: PropertyValues) {
-    if (changed.has('options') && this.options) {
-      this.ownStore.destroy();
-      this.store = this.ownStore = new KBarStore(this.actions ?? this.store.actions, this.options);
-    } else if (changed.has('actions') && this.actions) this.store.setActions(this.actions);
+    if (changed.has('options') && this.options) this.store.setOptions(this.options);
+    if (changed.has('actions') && this.actions) this.store.setActions(this.actions);
     this.context.setValue(this.store);
     this.bind();
   }
@@ -57,8 +55,8 @@ export class KBarProvider extends LitElement {
   }
   private bindKeys(force = false) {
     const actions = this.store.actions;
-    if (!force && actions.length === this.boundActions.length && actions.every((action, i) => action === this.boundActions[i])) return;
-    this.boundActions = actions; this.removeKeys?.();
+    if (!force && this.boundOptions === this.store.options && actions.length === this.boundActions.length && actions.every((action, i) => action === this.boundActions[i])) return;
+    this.boundOptions = this.store.options; this.boundActions = actions; this.removeKeys?.();
     const win = this.ownerDocument.defaultView!;
     const ignore = (event: KeyboardEvent) => event.defaultPrevented || event.isComposing || event.repeat || this.store.state.disabled;
     const toggle = tinykeys(win, { [this.store.options.toggleShortcut ?? '$mod+k']: event => { event.preventDefault(); this.store.toggle(); } }, { ignore });

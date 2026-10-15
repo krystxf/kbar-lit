@@ -22,7 +22,7 @@ export class KBarResults extends LitElement {
   private virtualizer = new Virtualizer<HTMLElement, HTMLElement>({
     count: 0, getScrollElement: () => this.querySelector<HTMLElement>('[data-kbar-scroll]'),
     estimateSize: () => 56, observeElementRect, observeElementOffset, scrollToFn: elementScroll,
-    overscan: 5, onChange: () => this.requestUpdate(),
+    overscan: 5, onChange: () => queueMicrotask(() => { if (this.isConnected) this.requestUpdate(); }),
   });
   protected createRenderRoot() { return this; }
   private get rows() {

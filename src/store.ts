@@ -8,7 +8,9 @@ const sectionName = (action: Action) => typeof action.section === 'string' ? act
 
 export class KBarStore {
   readonly history = new KBarHistory();
-  readonly options: Readonly<KBarOptions>;
+  private configuration: Readonly<KBarOptions>;
+  get options() { return this.configuration; }
+  setOptions(options: KBarOptions) { this.configuration = Object.freeze({ toggleShortcut: "$mod+k", animations: { enterMs: 200, exitMs: 100 }, ...options }); this.patch({}); }
   private animationTimer?: ReturnType<typeof setTimeout>;
   private input?: HTMLInputElement;
   readonly uid = `kbar-${globalThis.crypto.randomUUID()}`;
@@ -31,7 +33,7 @@ export class KBarStore {
   private cachedMatches?: readonly ActionImpl[];
 
   constructor(actions: readonly Action[] = [], options: KBarOptions = {}) {
-    this.options = Object.freeze({ toggleShortcut: '$mod+k', ...options });
+    this.configuration = Object.freeze({ toggleShortcut: '$mod+k', animations: { enterMs: 200, exitMs: 100 }, ...options });
     this.setActions(actions);
   }
   get state() { return this.snapshot; }
@@ -44,7 +46,14 @@ export class KBarStore {
     while (action) { result.unshift(action); action = action.parent ? this.getAction(action.parent) : undefined; }
     return result;
   }
-  subscribe(listener: () => void) {
+  subscribe(listener: () => void): () => void;
+  subscribe<T>(selector: (state: ReturnType<KBarStore['getState']>) => T, listener: (value: T) => void, equals?: (a: T, b: T) => boolean): () => void;
+  subscribe<T>(selector: (() => void) | ((state: ReturnType<KBarStore['getState']>) => T), onChange?: (value: T) => void, equals = Object.is) {
+    let previous = onChange ? selector(this.getState()) as T : undefined;
+    const listener = onChange ? () => {
+      const next = selector(this.getState()) as T;
+      if (!equals(previous, next)) { previous = next; onChange(next); }
+    } : selector as () => void;
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
   }
@@ -58,7 +67,7 @@ export class KBarStore {
     for (const action of actions) {
       if (!action.id || !action.name) throw new Error('Actions require a non-empty id and name.');
       if (registry.has(action.id)) throw new Error(`Duplicate action: ${action.id}`);
-      registry.set(action.id, action instanceof ActionImpl && this.registry.get(action.id) === action ? action : new ActionImpl(action, () => this.registry, this.options.enableHistory ? this.history : undefined));
+      registry.set(action.id, action instanceof ActionImpl && this.registry.get(action.id) === action ? action : new ActionImpl(action, () => this.registry, () => this.options.enableHistory ? this.history : undefined));
     }
     for (const action of registry.values()) {
       const seen = new Set([action.id]);
