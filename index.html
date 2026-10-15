@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f5f4ef"><title>kbar-lit — Find your next action</title><link rel="stylesheet" href="/demo/style.css"></head>
+<body>
+  <div class="page">
+    <header><a class="wordmark" href="/">k<span>⌘</span>bar<span class="badge">LIT</span></a><a href="https://github.com/krystxf/kbar-lit">Source ↗</a></header>
+    <main>
+      <div class="eyebrow"><span></span> WEB COMPONENTS. EVERYWHERE.</div>
+      <h1>Less clicking.<br><em>More doing.</em></h1>
+      <p class="intro">Your entire application, one command away.<br>A composable command menu, rebuilt for the web.</p>
+      <button id="open" class="launch"><span>Find your next action</span><kbd>⌘ / Ctrl K</kbd></button>
+      <div class="demo-note">Go ahead. Change the theme, explore pages, or try a shortcut.</div>
+      <div class="features"><article><span>01 / COMPOSE</span><h2>Small pieces.<br>Your interface.</h2><p>Provider, portal, positioner, animator, search and results. Put them together your way.</p></article><article><span>02 / NAVIGATE</span><h2>Keep your hands<br>on the keyboard.</h2><p>Fuzzy search, nested actions and shortcut sequences. Every action within reach.</p></article><article><span>03 / EXTEND</span><h2>Built on the<br>web platform.</h2><p>Lit templates, native custom elements and a headless store. No React required.</p></article></div>
+      <section class="playground"><div><span class="eyebrow">TRY IT OUT</span><h2>A little room to experiment.</h2><p id="activity" role="status">Ready when you are.</p></div><div class="controls"><button id="load">Load 10,000 actions</button><button id="undo">Undo</button><button id="redo">Redo</button></div></section>
+      <label class="field">Shortcuts stay out of your typing.<input id="typing" placeholder="Try typing g h here…"></label>
+    </main>
+    <footer><span>kbar’s familiar ideas. Lit’s native simplicity.</span><span>Inspired by timc1/kbar · MIT</span></footer>
+  </div>
+  <kbar-provider id="provider">
+    <kbar-portal><kbar-positioner><kbar-animator>
+      <div class="palette-heading"><span>THE COMMAND MENU</span><span class="live-dot">●</span></div>
+      <kbar-search></kbar-search><kbar-results></kbar-results>
+      <div class="palette-footer"><span>↑ ↓ Navigate &nbsp; ↵ Select</span><span>Backspace Back · Esc Close</span></div>
+    </kbar-animator></kbar-positioner></kbar-portal>
+  </kbar-provider>
+  <script type="module" src="/demo/main.ts"></script>
+</body></html>
