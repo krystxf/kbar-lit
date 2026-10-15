@@ -162,7 +162,7 @@ export class KBarStore {
     else {
       this.index ??= new Fuse(this.actions, {
         keys: [{ name: 'name', weight: .5 }, { name: 'keywords', weight: .3 }, { name: 'subtitle', weight: .2 }, { name: 'section', getFn: sectionName, weight: .1 }],
-        threshold: .3, ignoreLocation: true, ignoreDiacritics: true, includeScore: true,
+        threshold: .2, ignoreLocation: true, ignoreDiacritics: true, includeScore: true,
         useTokenSearch: true, tokenMatch: 'all',
       });
       ranked = this.index.search(query).filter(({ item }) => {

@@ -1,0 +1,86 @@
+import { LitElement, html } from 'lit';
+import type { PropertyValues } from 'lit';
+import { ContextProvider } from '@lit/context';
+import { tinykeys } from 'tinykeys';
+import type { KeybindingsMap } from 'tinykeys';
+import { kbarContext } from './controller.js';
+import { KBarStore } from './store.js';
+import type { Action, KBarOptions } from './types.js';
+
+function editable(event: KeyboardEvent) {
+  return event.composedPath().some(target => target instanceof HTMLElement &&
+    (target.matches('input, textarea, select, [role="textbox"]') || target.isContentEditable));
+}
+
+export class KBarProvider extends LitElement {
+  static properties = { store: { attribute: false }, actions: { attribute: false }, options: { attribute: false } };
+  store = new KBarStore();
+  actions?: readonly Action[];
+  options?: KBarOptions;
+  private context = new ContextProvider(this, { context: kbarContext, initialValue: this.store });
+  private unsubscribe?: () => void;
+  private removeKeys?: () => void;
+  private boundStore?: KBarStore;
+  private boundActions: readonly Action[] = [];
+  private wasOpen = false;
+  private search = '';
+  private ownStore = this.store;
+  connectedCallback() { super.connectedCallback(); this.bind(); }
+  disconnectedCallback() {
+    super.disconnectedCallback(); this.unsubscribe?.(); this.removeKeys?.(); this.boundStore = undefined;
+  }
+  protected willUpdate(changed: PropertyValues) {
+    if (changed.has('options') && this.options) {
+      this.ownStore.destroy();
+      this.store = this.ownStore = new KBarStore(this.actions ?? this.store.actions, this.options);
+    } else if (changed.has('actions') && this.actions) this.store.setActions(this.actions);
+    this.context.setValue(this.store);
+    this.bind();
+  }
+  private bind() {
+    if (this.boundStore === this.store) return;
+    this.unsubscribe?.(); this.boundStore = this.store;
+    this.wasOpen = this.store.state.open; this.search = this.store.state.search;
+    this.unsubscribe = this.store.subscribe(() => {
+      this.bindKeys();
+      const state = this.store.state;
+      if (state.open !== this.wasOpen) {
+        this.wasOpen = state.open;
+        this.dispatchEvent(new CustomEvent(state.open ? 'kbar-open' : 'kbar-close', { bubbles: true, composed: true }));
+      }
+      if (state.search !== this.search) {
+        this.search = state.search;
+        this.dispatchEvent(new CustomEvent('kbar-query-change', { detail: { search: state.search }, bubbles: true, composed: true }));
+      }
+    });
+    this.boundActions = []; this.bindKeys(true);
+  }
+  private bindKeys(force = false) {
+    const actions = this.store.actions;
+    if (!force && actions.length === this.boundActions.length && actions.every((action, i) => action === this.boundActions[i])) return;
+    this.boundActions = actions; this.removeKeys?.();
+    const win = this.ownerDocument.defaultView!;
+    const ignore = (event: KeyboardEvent) => event.defaultPrevented || event.isComposing || event.repeat || this.store.state.disabled;
+    const toggle = tinykeys(win, { [this.store.options.toggleShortcut ?? '$mod+k']: event => { event.preventDefault(); this.store.toggle(); } }, { ignore });
+    const map: KeybindingsMap = {};
+    for (const action of [...actions].sort((a, b) => (b.shortcut?.length ?? 0) - (a.shortcut?.length ?? 0))) {
+      if (action.shortcut?.length) map[action.shortcut.join(' ')] = event => {
+        event.preventDefault(); void this.execute(action.id);
+      };
+    }
+    if (this.store.options.enableHistory) {
+      map['$mod+z'] = event => { if (this.store.history.canUndo) { event.preventDefault(); void this.store.history.undo().catch(error => this.reportError(error)); } };
+      map['$mod+Shift+z'] = event => { if (this.store.history.canRedo) { event.preventDefault(); void this.store.history.redo().catch(error => this.reportError(error)); } };
+    }
+    const shortcuts = tinykeys(win, map, { timeout: 400, ignore: event => ignore(event) || this.store.state.open || editable(event) });
+    this.removeKeys = () => { toggle(); shortcuts(); };
+  }
+  private reportError(error: unknown) { this.dispatchEvent(new CustomEvent('kbar-error', { detail: { error }, bubbles: true, composed: true })); }
+  async execute(id?: string) {
+    try {
+      const action = await this.store.select(id);
+      if (action) this.dispatchEvent(new CustomEvent('kbar-select', { detail: { action }, bubbles: true, composed: true }));
+    } catch (error) { this.reportError(error); }
+  }
+  protected render() { return html`<slot></slot>`; }
+}
