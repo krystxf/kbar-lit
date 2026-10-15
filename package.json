@@ -12,9 +12,10 @@
     "typecheck": "turbo run typecheck && tsc --noEmit",
     "test": "turbo run test",
     "test:browser": "pnpm exec playwright test",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm test:browser",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm test:examples",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:examples": "pnpm exec playwright test -c playwright.examples.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -1,0 +1,23 @@
+{
+  "name": "@kbar-lit/example-nextjs",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 4201",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 4201",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@kbar-lit/example-actions": "workspace:*",
+    "kbar-lit": "workspace:*",
+    "next": "^16.4.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "~6.0.3"
+  }
+}

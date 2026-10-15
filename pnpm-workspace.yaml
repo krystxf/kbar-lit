@@ -4,3 +4,22 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+  '@parcel/watcher': true
+  lmdb: true
+  msgpackr-extract: true
+minimumReleaseAgeExclude:
+  - '@angular/common@22.2.3'
+  - '@angular/compiler-cli@22.2.3'
+  - '@angular/compiler@22.2.3'
+  - '@angular/core@22.2.3'
+  - '@angular/platform-browser@22.2.3'
+  - '@next/env@16.4.1'
+  - '@next/swc-darwin-arm64@16.4.1'
+  - '@next/swc-darwin-x64@16.4.1'
+  - '@next/swc-linux-arm64-gnu@16.4.1'
+  - '@next/swc-linux-arm64-musl@16.4.1'
+  - '@next/swc-linux-x64-gnu@16.4.1'
+  - '@next/swc-linux-x64-musl@16.4.1'
+  - '@next/swc-win32-arm64-msvc@16.4.1'
+  - '@next/swc-win32-x64-msvc@16.4.1'
+  - next@16.4.1
