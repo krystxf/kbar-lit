@@ -3,13 +3,18 @@ import type { KBarHistory } from './history.js';
 
 export class Command {
   private item?: HistoryItem;
-  constructor(private execute: () => void | Undo | Promise<void | Undo>, private getHistory: () => KBarHistory | undefined = () => undefined) {}
+  constructor(
+    private execute: () => void | Undo | Promise<void | Undo>,
+    private getHistory: () => KBarHistory | undefined = () => undefined,
+  ) {}
   get history() {
     const stack = this.getHistory();
-    return stack ? {
-      undo: () => this.item ? stack.undo(this.item) : Promise.resolve(),
-      redo: () => this.item ? stack.redo(this.item) : Promise.resolve(),
-    } : undefined;
+    return stack
+      ? {
+          undo: () => (this.item ? stack.undo(this.item) : Promise.resolve()),
+          redo: () => (this.item ? stack.redo(this.item) : Promise.resolve()),
+        }
+      : undefined;
   }
   async perform() {
     const undo = await this.execute();
@@ -31,22 +36,38 @@ export class ActionImpl implements Action {
   readonly icon?: unknown;
   readonly command?: Command;
   readonly perform?: () => Promise<void>;
-  constructor(action: Action, private lookup: () => ReadonlyMap<string, ActionImpl>, history?: () => KBarHistory | undefined) {
-    this.id = action.id; this.name = action.name; this.subtitle = action.subtitle;
-    this.keywords = action.keywords; this.shortcut = action.shortcut ? [...action.shortcut] : undefined;
+  constructor(
+    action: Action,
+    private lookup: () => ReadonlyMap<string, ActionImpl>,
+    history?: () => KBarHistory | undefined,
+  ) {
+    this.id = action.id;
+    this.name = action.name;
+    this.subtitle = action.subtitle;
+    this.keywords = action.keywords;
+    this.shortcut = action.shortcut ? [...action.shortcut] : undefined;
     this.section = typeof action.section === 'object' ? { ...action.section } : action.section;
-    this.parent = action.parent; this.priority = action.priority ?? 0; this.icon = action.icon;
+    this.parent = action.parent;
+    this.priority = action.priority ?? 0;
+    this.icon = action.icon;
     if (action.perform) {
       this.command = new Command(() => action.perform!(this), history);
       this.perform = () => this.command!.perform();
     }
   }
-  get children() { return [...this.lookup().values()].filter(action => action.parent === this.id); }
-  get parentActionImpl(): ActionImpl | undefined { return this.parent ? this.lookup().get(this.parent) : undefined; }
+  get children() {
+    return [...this.lookup().values()].filter((action) => action.parent === this.id);
+  }
+  get parentActionImpl(): ActionImpl | undefined {
+    return this.parent ? this.lookup().get(this.parent) : undefined;
+  }
   get ancestors(): ActionImpl[] {
     const result: ActionImpl[] = [];
     let parent = this.parentActionImpl;
-    while (parent) { result.unshift(parent); parent = parent.parentActionImpl; }
+    while (parent) {
+      result.unshift(parent);
+      parent = parent.parentActionImpl;
+    }
     return result;
   }
 }

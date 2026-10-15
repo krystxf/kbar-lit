@@ -17,8 +17,10 @@ export interface Action {
   perform?: (action: ActionImpl) => void | Undo | Promise<void | Undo>;
 }
 export enum VisualState {
-  animatingIn = 'animating-in', showing = 'showing',
-  animatingOut = 'animating-out', hidden = 'hidden',
+  animatingIn = 'animating-in',
+  showing = 'showing',
+  animatingOut = 'animating-out',
+  hidden = 'hidden',
 }
 export interface KBarOptions {
   enableHistory?: boolean;
@@ -44,5 +46,11 @@ export interface KBarState {
   readonly busy: boolean;
   readonly error: unknown;
 }
-export interface ActionGroup { name: string; actions: readonly ActionImpl[] }
-export interface HistoryItem { perform: () => void | Undo | Promise<void | Undo>; undo: Undo }
+export interface ActionGroup {
+  name: string;
+  actions: readonly ActionImpl[];
+}
+export interface HistoryItem {
+  perform: () => void | Undo | Promise<void | Undo>;
+  undo: Undo;
+}
