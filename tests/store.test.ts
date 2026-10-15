@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { KBarStore } from '../src/core.js';
+import { VisualState, KBarStore } from '../src/core.js';
 
 describe('action store', () => {
   it('supports unordered trees, scoped deep search and back navigation', async () => {
@@ -35,7 +35,8 @@ describe('action store', () => {
       { id: 'c', name: 'C', section: 'Other', priority: 10 },
     ]);
     expect(store.matches.map(a => a.id)).toEqual(['b', 'c', 'a']);
-    store.move(-1); expect(store.state.activeIndex).toBe(2);
+    store.move(-1); expect(store.state.activeIndex).toBe(0);
+    store.move(20); expect(store.state.activeIndex).toBe(2);
   });
   it('supports multi-field queries and diacritics', () => {
     const store = new KBarStore([{ id: 'c', name: 'Café', keywords: 'social', section: 'Places' }]);
@@ -63,7 +64,42 @@ describe('action store', () => {
   });
   it('notifies subscribers and honors disabled state', () => {
     const store = new KBarStore(); const listener = vi.fn(); const off = store.subscribe(listener);
-    store.show(); expect(listener).toHaveBeenCalledTimes(1); off(); store.hide();
-    expect(listener).toHaveBeenCalledTimes(1); store.disable(); store.show(); expect(store.state.open).toBe(false);
+    store.show(); expect(listener).toHaveBeenCalled(); off(); listener.mockClear(); store.hide();
+    expect(listener).not.toHaveBeenCalled(); store.disable(); store.show(); expect(store.state.open).toBe(false);
+  });
+});
+
+
+describe('kbar compatibility', () => {
+  it('completes and interrupts visual transitions without stale timers', () => {
+    vi.useFakeTimers();
+    const onOpen = vi.fn(), onClose = vi.fn();
+    const store = new KBarStore([], { animations: { enterMs: 100, exitMs: 50 }, callbacks: { onOpen, onClose } });
+    store.show(); expect(store.state.visualState).toBe(VisualState.animatingIn);
+    store.hide(); vi.advanceTimersByTime(50); expect(store.state.visualState).toBe(VisualState.hidden);
+    store.show(); vi.advanceTimersByTime(100); expect(store.state.visualState).toBe(VisualState.showing);
+    store.hide(); store.show(); vi.advanceTimersByTime(100); expect(store.state.open).toBe(true);
+    expect(onOpen).toHaveBeenCalledTimes(3); expect(onClose).toHaveBeenCalledTimes(2);
+    store.destroy(); vi.useRealTimers();
+  });
+  it('exposes action relationships, commands, and targeted history', async () => {
+    let value = 0;
+    const store = new KBarStore([
+      { id: 'parent', name: 'Parent' },
+      { id: 'a', name: 'A', parent: 'parent', perform: action => { expect(action.ancestors[0].id).toBe('parent'); value++; return () => { value--; }; } },
+      { id: 'b', name: 'B', perform: () => { value += 10; return () => { value -= 10; }; } },
+    ], { enableHistory: true });
+    const a = store.getAction('a')!;
+    expect(store.getAction('parent')!.children).toEqual([a]);
+    await store.select('a'); await store.select('b');
+    await a.command!.history!.undo(); expect(value).toBe(10);
+    await a.command!.history!.redo(); expect(value).toBe(11);
+  });
+  it('keeps failed undo operations retryable', async () => {
+    let fail = true;
+    const store = new KBarStore([{ id: 'a', name: 'A', perform: () => () => { if (fail) throw new Error('retry'); } }], { enableHistory: true });
+    await store.select('a'); await expect(store.history.undo()).rejects.toThrow('retry');
+    expect(store.history.canUndo).toBe(true); fail = false;
+    await store.history.undo(); expect(store.history.canRedo).toBe(true);
   });
 });
