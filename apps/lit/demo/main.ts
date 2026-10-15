@@ -1,6 +1,6 @@
-import '../src/register.js';
-import { KBarStore } from '../src/index.js';
-import type { Action } from '../src/index.js';
+import 'kbar-lit/register';
+import { KBarStore } from 'kbar-lit';
+import type { Action } from 'kbar-lit';
 
 const activity = document.querySelector<HTMLElement>('#activity')!;
 const announce = (message: string) => {

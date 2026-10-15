@@ -17,11 +17,11 @@ A **Lit / Web Components rewrite of [kbar](https://github.com/timc1/kbar)**. The
 Requires Node 22.12+ (Node 24 recommended).
 
 ```sh
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-The demo includes nested theme commands with undo/redo, shortcuts, async execution, and a 10,000-action stress case. This repository has not been published to npm. To use it in another local project, run `npm pack` here and install the generated tarball there.
+The demo includes nested theme commands with undo/redo, shortcuts, async execution, and a 10,000-action stress case. This repository has not been published to npm. To use it in another local project, run `pnpm --filter kbar-lit pack` here and install the generated tarball there.
 
 ## Compose the components
 
@@ -284,10 +284,10 @@ See [PARITY.md](./PARITY.md) for the upstream mapping, covered behaviors, and in
 ## Validation
 
 ```sh
-npx playwright install chromium webkit
-npm run check
-npm run format:check
-npm pack --dry-run
+pnpm exec playwright install chromium webkit
+pnpm check
+pnpm format:check
+pnpm --filter kbar-lit pack --dry-run
 ```
 
 Core tests cover the action tree, search, registration, history, failures, callbacks, and animation transitions. Browser tests exercise both composed and convenience APIs in Chromium and WebKit, including axe accessibility scans, focus, shortcuts, 10,000 actions, measured custom rows, async failures, options, and portal cleanup. The [GitHub Actions template](./ci/github-actions.yml) runs the same checks on Linux. Move it to `.github/workflows/ci.yml` using a GitHub login with workflow permission to enable it. The current repository login can push code but cannot create Actions workflows.

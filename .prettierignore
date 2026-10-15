@@ -4,3 +4,7 @@ package-lock.json
 test-results
 playwright-report
 *.log
+pnpm-lock.yaml
+.next
+.angular
+.turbo

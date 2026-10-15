@@ -110,7 +110,7 @@ test('reports async failures, allows retry, and emits selection events', async (
 test('measures custom variable-height result templates', async ({ page }) => {
   await page.evaluate(async () => {
     // @ts-expect-error Vite serves the source module for the integration fixture.
-    const { html } = await import('/node_modules/lit/index.js');
+    const { html } = await import('/demo/templates.ts');
     document.querySelector('kbar-results')!.onRender = ({ item, active }) =>
       typeof item === 'string'
         ? html`<div style="padding:10px">${item}</div>`
