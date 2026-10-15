@@ -7,6 +7,7 @@ import {
   observeElementOffset,
   elementScroll,
   defaultRangeExtractor,
+  measureElement,
 } from '@tanstack/virtual-core';
 import { KBarController } from './controller.js';
 import type { ActionImpl } from './action.js';
@@ -29,6 +30,7 @@ export class KBarResults extends LitElement {
   emptyText = 'No results found.';
   private kbar = new KBarController(this);
   private cleanup?: () => void;
+  private measuredHeights = new WeakMap<HTMLElement, number>();
   private previousActive = -1;
   private wasOpen = false;
   private previousItems?: readonly (ActionImpl | string)[];
@@ -38,6 +40,16 @@ export class KBarResults extends LitElement {
     count: 0,
     getScrollElement: () => this.querySelector<HTMLElement>('[data-kbar-scroll]'),
     estimateSize: () => 56,
+    useAnimationFrameWithResizeObserver: true,
+    measureElement: (element, entry, instance) => {
+      // A hidden modal has zero-sized rows; never overwrite useful measurements with zero.
+      if (!element.getClientRects().length) {
+        return this.measuredHeights.get(element) ?? 56;
+      }
+      const height = measureElement(element, entry, instance);
+      this.measuredHeights.set(element, height);
+      return height;
+    },
     observeElementRect,
     observeElementOffset,
     scrollToFn: elementScroll,

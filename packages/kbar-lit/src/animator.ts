@@ -25,6 +25,7 @@ export class KBarAnimator extends LitElement {
   private height?: number;
   private appearance?: Animation;
   private resize?: Animation;
+  private resizeFrame?: number;
   private outside = (event: PointerEvent) => {
     if (
       !this.closest('kbar-portal, [data-kbar-portal]') &&
@@ -45,6 +46,7 @@ export class KBarAnimator extends LitElement {
     this.observer = undefined;
     this.appearance?.cancel();
     this.resize?.cancel();
+    if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
   }
   protected updated() {
     const state = this.kbar.state;
@@ -85,13 +87,22 @@ export class KBarAnimator extends LitElement {
     if (!this.observer) {
       this.observer = new ResizeObserver((entries) => {
         const height = entries[0].contentRect.height;
-        if (this.height && height && this.kbar.state?.open && enter) {
-          this.resize?.cancel();
-          this.resize = this.animate([{ height: `${this.height}px` }, { height: `${height}px` }], {
-            duration: enter / 2,
-            easing: 'ease-out',
-          });
-        }
+        const previous = this.height;
+        if (this.resizeFrame !== undefined) cancelAnimationFrame(this.resizeFrame);
+        // Mutate layout in the next frame, outside ResizeObserver delivery.
+        this.resizeFrame = requestAnimationFrame(() => {
+          const reduced = this.ownerDocument.defaultView!.matchMedia(
+            '(prefers-reduced-motion: reduce)',
+          ).matches;
+          const duration = reduced ? 0 : (this.kbar.options?.animations?.enterMs ?? 0) / 2;
+          if (previous && height && this.kbar.state?.open && duration) {
+            this.resize?.cancel();
+            this.resize = this.animate([{ height: `${previous}px` }, { height: `${height}px` }], {
+              duration,
+              easing: 'ease-out',
+            });
+          }
+        });
         this.height = height;
       });
       this.observer.observe(this.renderRoot.querySelector('div')!);

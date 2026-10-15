@@ -232,3 +232,19 @@ test('keeps the first section visible and supports shifted punctuation shortcuts
   await expect(page.locator('[data-kbar-scroll]')).toHaveJSProperty('scrollTop', 0);
   await expect(page.getByText('Navigation', { exact: true })).toBeVisible();
 });
+
+test('reopening after a nested command retains measured rows and valid active descendant', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.keyboard.press('t');
+  await page.getByRole('combobox').press('ArrowDown');
+  await page.getByRole('combobox').press('Enter');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.locator('#open').click();
+  await expect(page.getByRole('option', { selected: true })).toContainText('Go to home');
+  const activeId = await page.getByRole('combobox').getAttribute('aria-activedescendant');
+  await expect(page.locator(`[id="${activeId}"]`)).toBeVisible();
+  expect(errors).toEqual([]);
+});
