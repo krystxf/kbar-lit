@@ -73,6 +73,7 @@ if (new URLSearchParams(location.search).has('parentCommand'))
   actions.find((action) => action.id === 'theme').perform = perform;
 function installAPI(getState, getResults, query, history) {
   window.parity = {
+    disable: (value) => query.disable(value),
     clearEvents: () => {
       events.length = 0;
     },

@@ -262,7 +262,7 @@ export class KBarStore {
   }
   disable(disabled = true) {
     this.patch({ disabled });
-    if (disabled) this.hide();
+    if (disabled) this.hide(false);
   }
   setSearch(search: string, notify = true) {
     if (search === this.state.search) return;

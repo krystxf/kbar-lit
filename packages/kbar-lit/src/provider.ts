@@ -37,13 +37,20 @@ export class KBarProvider extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.bind();
+    this.ownerDocument.defaultView?.addEventListener('keydown', this.recoverFocus, true);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.unsubscribe?.();
     this.removeKeys?.();
+    this.ownerDocument.defaultView?.removeEventListener('keydown', this.recoverFocus, true);
     this.boundStore = undefined;
   }
+  private recoverFocus = (event: KeyboardEvent) => {
+    if (!this.store.state.open || event.isComposing) return;
+    const input = this.store.query.getInput();
+    if (input && !event.composedPath().includes(input)) input.focus({ preventScroll: true });
+  };
   protected willUpdate(changed: PropertyValues) {
     if (changed.has('options') && this.options) this.store.setOptions(this.options);
     if (changed.has('actions') && this.actions) this.store.setActions(this.actions);

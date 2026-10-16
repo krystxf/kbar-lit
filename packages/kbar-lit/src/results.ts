@@ -89,14 +89,7 @@ export class KBarResults extends LitElement {
   }
   private keydown = (event: KeyboardEvent) => {
     const store = this.kbar.store;
-    if (
-      !store?.state.open ||
-      event.isComposing ||
-      event.defaultPrevented ||
-      (!event.composedPath().includes(store.query.getInput()!) &&
-        !event.composedPath().includes(this.querySelector('[data-kbar-scroll]')!))
-    )
-      return;
+    if (!store?.state.open || event.isComposing || event.defaultPrevented) return;
     const key = event.key.toLowerCase();
     let index = store.state.activeIndex;
     if (key === 'arrowdown' || (event.ctrlKey && key === 'n')) index++;

@@ -7,6 +7,7 @@ declare global {
     registryScenario(): unknown;
     treeScenario(): unknown;
     parity: {
+      disable(value: boolean): void;
       clearEvents(): void;
       snapshot(): {
         results: string[];
@@ -252,3 +253,40 @@ for (const withCommand of [false, true]) {
     expect(outputs[1]).toEqual(outputs[0]);
   });
 }
+
+test('keyboard navigation recovers focus after the search input is blurred', async ({
+  browser,
+}) => {
+  const outputs = [];
+  for (const engine of ['react', 'lit']) {
+    const page = await browser.newPage();
+    await ready(page, engine);
+    await snapshot(page);
+    const input = page.getByRole('combobox');
+    await input.blur();
+    await page.keyboard.press('Shift');
+    await expect(input).toBeFocused();
+    await input.blur();
+    await page.keyboard.press('ArrowDown');
+    const state = await snapshot(page);
+    outputs.push({ index: state.activeIndex, results: state.results });
+    await page.close();
+  }
+  expect(outputs[1]).toEqual(outputs[0]);
+});
+
+test('programmatic disable closes without synthesizing user callbacks', async ({ browser }) => {
+  const outputs = [];
+  for (const engine of ['react', 'lit']) {
+    const page = await browser.newPage();
+    await ready(page, engine);
+    await page.evaluate(() => {
+      window.parity.clearEvents();
+      window.parity.disable(true);
+    });
+    const state = await snapshot(page);
+    outputs.push({ visualState: state.visualState, events: state.events });
+    await page.close();
+  }
+  expect(outputs[1]).toEqual(outputs[0]);
+});
