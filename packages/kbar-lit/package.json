@@ -41,6 +41,7 @@
   "dependencies": {
     "@lit/context": "^1.1.6",
     "@tanstack/virtual-core": "^3.19.4",
+    "fast-equals": "2.0.3",
     "fuse.js": "^7.5.0",
     "lit": "^3.3.3",
     "tinykeys": "^4.0.1"

@@ -1,3 +1,4 @@
+import type { KBarHistory } from './history.js';
 import type { ActionImpl } from './action.js';
 
 /** Return an inverse operation from perform() to participate in history. */
@@ -24,6 +25,8 @@ export enum VisualState {
 }
 export interface KBarOptions {
   enableHistory?: boolean;
+  /** Optional isolated history; the default is the upstream-compatible shared history. */
+  historyManager?: KBarHistory;
   toggleShortcut?: string;
   animations?: { enterMs?: number; exitMs?: number };
   disableDocumentLock?: boolean;
@@ -40,7 +43,7 @@ export interface KBarState {
   readonly visualState: VisualState;
   readonly search: string;
   readonly rootId: string | null;
-  /** Index among actions (section headings are excluded). */
+  /** Index in the mixed results array, including section headings (as in kbar). */
   readonly activeIndex: number;
   readonly disabled: boolean;
   readonly busy: boolean;
@@ -52,5 +55,11 @@ export interface ActionGroup {
 }
 export interface HistoryItem {
   perform: () => void | Undo | Promise<void | Undo>;
-  undo: Undo;
+  negate: Undo;
 }
+
+export type ActionId = string;
+export type ActionSection = NonNullable<Action['section']>;
+export type ActionStore = Record<ActionId, ActionImpl>;
+export type ActionTree = ActionStore;
+export type History = KBarHistory;

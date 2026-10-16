@@ -8,3 +8,7 @@ pnpm-lock.yaml
 .next
 .angular
 .turbo
+
+packages/parity-oracle/upstream
+
+apps/nextjs/next-env.d.ts

@@ -1,14 +1,15 @@
 import Fuse from 'fuse.js';
+import { deepEqual } from 'fast-equals';
 import { ActionImpl } from './action.js';
 import { VisualState } from './types.js';
-import { KBarHistory } from './history.js';
+import { KBarHistory, history } from './history.js';
 import type { Action, ActionGroup, KBarOptions, KBarState } from './types.js';
 
 const sectionName = (action: Action) =>
   typeof action.section === 'string' ? action.section : (action.section?.name ?? '');
 
 export class KBarStore {
-  readonly history = new KBarHistory();
+  readonly history: KBarHistory;
   private configuration: Readonly<KBarOptions>;
   get options() {
     return this.configuration;
@@ -25,14 +26,14 @@ export class KBarStore {
   private input?: HTMLInputElement;
   readonly uid = `kbar-${globalThis.crypto.randomUUID()}`;
   readonly query = {
-    setSearch: (search: string) => this.setSearch(search),
+    setSearch: (search: string) => this.setSearch(search, false),
     setCurrentRootAction: (id?: string | null) => this.setRoot(id ?? null),
     setVisualState: (value: VisualState | ((state: VisualState) => VisualState)) =>
       this.setVisualState(typeof value === 'function' ? value(this.state.visualState) : value),
     setActiveIndex: (value: number | ((index: number) => number)) =>
       this.setActiveIndex(typeof value === 'function' ? value(this.state.activeIndex) : value),
     registerActions: (actions: readonly Action[]) => this.registerActions(actions),
-    toggle: () => this.toggle(),
+    toggle: () => this.toggle(false),
     disable: (disabled: boolean) => this.disable(disabled),
     inputRefSetter: (input?: HTMLInputElement) => {
       this.input = input;
@@ -60,10 +61,13 @@ export class KBarStore {
     error: null,
   });
   private index?: Fuse<ActionImpl>;
+  private indexRoot?: string | null;
   private cachedGroups?: readonly ActionGroup[];
   private cachedMatches?: readonly ActionImpl[];
+  private cachedResults?: readonly (ActionImpl | string)[];
 
   constructor(actions: readonly Action[] = [], options: KBarOptions = {}) {
+    this.history = options.historyManager ?? history;
     this.configuration = Object.freeze({
       toggleShortcut: '$mod+k',
       animations: { enterMs: 200, exitMs: 100 },
@@ -101,9 +105,9 @@ export class KBarStore {
   subscribe<T>(
     selector: (() => void) | ((state: ReturnType<KBarStore['getState']>) => T),
     onChange?: (value: T) => void,
-    equals = Object.is,
+    equals = deepEqual,
   ) {
-    let previous = onChange ? (selector(this.getState()) as T) : undefined;
+    let previous: T | undefined;
     const listener = onChange
       ? () => {
           const next = selector(this.getState()) as T;
@@ -123,6 +127,11 @@ export class KBarStore {
     if (invalidate) {
       this.cachedGroups = undefined;
       this.cachedMatches = undefined;
+      this.cachedResults = undefined;
+    }
+    if (this.state.open && (invalidate || patch.open === true) && this.state.activeIndex === 0) {
+      const first = this.results.findIndex((item) => typeof item !== 'string');
+      if (first > 0) this.snapshot = Object.freeze({ ...this.snapshot, activeIndex: first });
     }
     this.listeners.forEach((listener) => listener());
   }
@@ -130,7 +139,6 @@ export class KBarStore {
     const registry = new Map<string, ActionImpl>();
     for (const action of actions) {
       if (!action.id || !action.name) throw new Error('Actions require a non-empty id and name.');
-      if (registry.has(action.id)) throw new Error(`Duplicate action: ${action.id}`);
       registry.set(
         action.id,
         action instanceof ActionImpl && this.registry.get(action.id) === action
@@ -170,7 +178,6 @@ export class KBarStore {
   /** Returns an idempotent disposer. Disposing a parent also removes descendants. */
   registerActions(actions: readonly Action[]) {
     const next = this.validated([...this.actions, ...actions]);
-    for (const [id, action] of this.registry) next.set(id, action);
     this.registry = next;
     this.index = undefined;
     this.patch({ activeIndex: 0 }, true);
@@ -223,21 +230,21 @@ export class KBarStore {
       else complete();
     }
   }
-  show() {
+  show(notify = true) {
     if (this.state.disabled || this.state.open) return;
     this.patch({ open: true, error: null });
     this.transition(VisualState.animatingIn);
-    this.options.callbacks?.onOpen?.();
+    if (notify) this.options.callbacks?.onOpen?.();
   }
-  hide() {
+  hide(notify = true) {
     if (!this.state.open) return;
     this.patch({ open: false });
     this.transition(VisualState.animatingOut);
-    this.options.callbacks?.onClose?.();
+    if (notify) this.options.callbacks?.onClose?.();
   }
   setVisualState(state: VisualState) {
-    if (state === VisualState.animatingIn) this.show();
-    else if (state === VisualState.animatingOut) this.hide();
+    if (state === VisualState.animatingIn) this.show(false);
+    else if (state === VisualState.animatingOut) this.hide(false);
     else {
       clearTimeout(this.animationTimer);
       this.patch(
@@ -250,17 +257,17 @@ export class KBarStore {
       );
     }
   }
-  toggle() {
-    this.state.open ? this.hide() : this.show();
+  toggle(notify = true) {
+    this.state.open ? this.hide(notify) : this.show(notify);
   }
   disable(disabled = true) {
     this.patch({ disabled });
     if (disabled) this.hide();
   }
-  setSearch(search: string) {
+  setSearch(search: string, notify = true) {
     if (search === this.state.search) return;
     this.patch({ search, activeIndex: 0, error: null }, true);
-    this.options.callbacks?.onQueryChange?.(search);
+    if (notify) this.options.callbacks?.onQueryChange?.(search);
   }
   destroy() {
     clearTimeout(this.animationTimer);
@@ -275,69 +282,85 @@ export class KBarStore {
     this.setRoot(this.state.rootId ? (this.registry.get(this.state.rootId)?.parent ?? null) : null);
   }
   setActiveIndex(index: number) {
-    const length = this.matches.length;
-    this.patch({
-      activeIndex: length
-        ? Math.max(0, Math.min(length - 1, Number.isFinite(index) ? Math.trunc(index) : 0))
-        : 0,
-    });
+    this.patch({ activeIndex: Number.isFinite(index) ? Math.max(0, Math.trunc(index)) : 0 });
   }
   move(delta: number) {
-    const length = this.matches.length;
-    if (length) this.setActiveIndex(this.state.activeIndex + delta);
+    const indices = this.results.flatMap((item, index) =>
+      typeof item === 'string' ? [] : [index],
+    );
+    if (!indices.length) return;
+    const current = Math.max(0, indices.indexOf(this.state.activeIndex));
+    this.setActiveIndex(indices[Math.max(0, Math.min(indices.length - 1, current + delta))]);
   }
   get groups(): readonly ActionGroup[] {
     if (this.cachedGroups) return this.cachedGroups;
-    const query = this.state.search.trim();
+    const query = this.state.search;
+    const roots = [...this.children].sort((a, b) => b.priority - a.priority);
     let ranked: { action: ActionImpl; score: number }[];
-    if (!query) ranked = this.children.map((action) => ({ action, score: 0 }));
+    if (!query.trim()) ranked = roots.map((action) => ({ action, score: 0 }));
     else {
-      this.index ??= new Fuse(this.actions, {
-        keys: [
-          { name: 'name', weight: 0.5 },
-          { name: 'keywords', weight: 0.3 },
-          { name: 'subtitle', weight: 0.2 },
-          { name: 'section', getFn: sectionName, weight: 0.1 },
-        ],
-        threshold: 0.2,
-        ignoreLocation: true,
-        ignoreDiacritics: true,
-        includeScore: true,
-        useTokenSearch: true,
-        tokenMatch: 'all',
-      });
+      if (!this.index || this.indexRoot !== this.state.rootId) {
+        const candidates = [...roots];
+        const collect = (parents: readonly ActionImpl[]) => {
+          for (const parent of parents) {
+            const children = parent.children;
+            candidates.push(...children);
+            collect(children);
+          }
+        };
+        collect(roots);
+        this.index = new Fuse(candidates, {
+          keys: [
+            { name: 'name', weight: 0.5 },
+            { name: 'keywords', getFn: (item) => (item.keywords ?? '').split(','), weight: 0.3 },
+            { name: 'subtitle', weight: 0.2 },
+          ],
+          threshold: 0.2,
+          ignoreLocation: true,
+          ignoreDiacritics: true,
+          includeScore: true,
+          minMatchCharLength: 1,
+          useTokenSearch: true,
+          tokenMatch: 'all',
+        });
+        this.indexRoot = this.state.rootId;
+      }
       ranked = this.index
         .search(query)
-        .filter(({ item }) => {
-          if (!this.state.rootId) return true;
-          let parent = item.parent;
-          while (parent) {
-            if (parent === this.state.rootId) return true;
-            parent = this.registry.get(parent)?.parent;
-          }
-          return false;
-        })
-        .map(({ item, score }) => ({ action: item, score: 1 - (score ?? 0) }));
+        .map(({ item, score }) => ({ action: item, score: 1 / ((score ?? 0) + 1) }));
     }
-    ranked.sort(
-      (a, b) => (b.action.priority ?? 0) + b.score - ((a.action.priority ?? 0) + a.score),
-    );
-    const groups = new Map<string, { name: string; priority: number; actions: ActionImpl[] }>();
-    for (const { action } of ranked) {
-      const name = sectionName(action);
-      const priority = typeof action.section === 'object' ? action.section.priority : 0;
-      if (!groups.has(name)) groups.set(name, { name, priority, actions: [] });
-      const group = groups.get(name)!;
-      group.priority = Math.max(group.priority, priority);
-      group.actions.push(action);
+    const groups = new Map<string, { name: string; priority: number; entries: typeof ranked }>();
+    for (const match of ranked) {
+      const { action, score } = match;
+      const name = sectionName(action) || 'none';
+      const priority =
+        typeof action.section === 'string' ? score : action.section?.priority || score;
+      if (!groups.has(name)) groups.set(name, { name, priority, entries: [] });
+      groups.get(name)!.entries.push(match);
     }
-    this.cachedGroups = [...groups.values()].sort((a, b) => b.priority - a.priority);
+    this.cachedGroups = [...groups.values()]
+      .sort((a, b) => b.priority - a.priority)
+      .map((group) => ({
+        name: group.name === 'none' ? '' : group.name,
+        actions: group.entries
+          .sort((a, b) => b.action.priority + b.score - (a.action.priority + a.score))
+          .map((entry) => entry.action),
+      }));
     return this.cachedGroups;
   }
   get matches(): readonly ActionImpl[] {
     return (this.cachedMatches ??= this.groups.flatMap((group) => group.actions));
   }
-  async select(id = this.matches[this.state.activeIndex]?.id): Promise<ActionImpl | undefined> {
+  get results(): readonly (ActionImpl | string)[] {
+    return (this.cachedResults ??= this.groups.flatMap<ActionImpl | string>((group) =>
+      group.name ? [group.name, ...group.actions] : group.actions,
+    ));
+  }
+  private get selectedId() {
+    const item = this.results[this.state.activeIndex];
+    return typeof item === 'string' ? undefined : item?.id;
+  }
+  async select(id = this.selectedId): Promise<ActionImpl | undefined> {
     if (!id || this.state.disabled || this.state.busy) return;
     const action = this.registry.get(id);
     if (!action) return;
@@ -352,7 +375,7 @@ export class KBarStore {
     this.patch({ busy: true, error: null });
     try {
       await action.command!.perform();
-      this.hide();
+      this.hide(false);
       this.options.callbacks?.onSelectAction?.(action);
       return action;
     } catch (error) {

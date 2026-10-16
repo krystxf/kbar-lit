@@ -1,0 +1,23 @@
+{
+  "name": "@kbar-lit/parity-oracle",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-portal": "^1.1.17",
+    "@tanstack/react-virtual": "^3.14.9",
+    "fast-equals": "2.0.3",
+    "fuse.js": "7.5.0",
+    "tiny-invariant": "^1.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

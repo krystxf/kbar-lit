@@ -1,5 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { VisualState, KBarStore } from '../src/core.js';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { VisualState, KBarStore, KBarHistory, history } from '../src/core.js';
+
+beforeEach(() => history.reset());
 
 describe('action store', () => {
   it('supports unordered trees, scoped deep search and back navigation', async () => {
@@ -20,7 +22,8 @@ describe('action store', () => {
   });
   it('rejects invalid registrations atomically', () => {
     const store = new KBarStore([{ id: 'a', name: 'A' }]);
-    expect(() => store.registerActions([{ id: 'a', name: 'B' }])).toThrow('Duplicate');
+    store.registerActions([{ id: 'a', name: 'B' }]);
+    expect(store.getAction('a')!.name).toBe('B');
     expect(() => store.setActions([{ id: 'b', name: 'B', parent: 'c' }])).toThrow('Unknown parent');
     expect(() =>
       store.setActions([
@@ -49,9 +52,9 @@ describe('action store', () => {
     ]);
     expect(store.matches.map((a) => a.id)).toEqual(['b', 'c', 'a']);
     store.move(-1);
-    expect(store.state.activeIndex).toBe(0);
+    expect(store.state.activeIndex).toBe(1);
     store.move(20);
-    expect(store.state.activeIndex).toBe(2);
+    expect(store.state.activeIndex).toBe(4);
   });
   it('supports multi-field queries and diacritics', () => {
     const store = new KBarStore([{ id: 'c', name: 'Café', keywords: 'social', section: 'Places' }]);
@@ -60,7 +63,7 @@ describe('action store', () => {
     store.setSearch('places');
     expect(store.matches).toHaveLength(1);
   });
-  it('isolates history and clears redo after a new action', async () => {
+  it('shares default history and replaces the repeated command history entry', async () => {
     let value = 0;
     const store = new KBarStore(
       [
@@ -87,7 +90,8 @@ describe('action store', () => {
     await store.history.undo();
     await store.select('inc');
     expect(store.history.canRedo).toBe(false);
-    expect(new KBarStore().history.canUndo).toBe(false);
+    expect(new KBarStore().history.canUndo).toBe(true);
+    expect(new KBarStore([], { historyManager: new KBarHistory() }).history.canUndo).toBe(false);
   });
   it('keeps failed actions open, reports errors, and prevents concurrent execution', async () => {
     let finish!: () => void;

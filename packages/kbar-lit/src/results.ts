@@ -102,22 +102,32 @@ export class KBarResults extends LitElement {
     if (key === 'arrowdown' || (event.ctrlKey && key === 'n')) index++;
     else if (key === 'arrowup' || (event.ctrlKey && key === 'p')) index--;
     else if (key === 'home' && event.ctrlKey) index = 0;
-    else if (key === 'end' && event.ctrlKey) index = this.actions.length - 1;
+    else if (key === 'end' && event.ctrlKey) index = this.rows.length - 1;
     else if (key === 'enter') {
       event.preventDefault();
       event.stopPropagation();
-      const action = this.actions[index];
-      if (action) void executeAction(this, store, action.id);
+      const action = this.rows[index];
+      if (action && typeof action !== 'string') void executeAction(this, store, action.id);
       return;
     } else return;
     event.preventDefault();
     event.stopPropagation();
-    store.setActiveIndex(Math.max(0, Math.min(this.actions.length - 1, index)));
+    const direction = index < store.state.activeIndex ? -1 : 1;
+    index = Math.max(0, Math.min(this.rows.length - 1, index));
+    while (typeof this.rows[index] === 'string') {
+      const next = index + direction;
+      if (next < 0 || next >= this.rows.length) {
+        index = store.state.activeIndex;
+        break;
+      }
+      index = next;
+    }
+    store.setActiveIndex(index);
   };
   protected willUpdate() {
     const rows = this.rows;
-    const active = this.actions[this.kbar.state?.activeIndex ?? 0];
-    const activeRow = active ? rows.indexOf(active) : -1;
+    const active = rows[this.kbar.state?.activeIndex ?? 0];
+    const activeRow = active && typeof active !== 'string' ? rows.indexOf(active) : -1;
     this.virtualizer.setOptions({
       ...this.virtualizer.options,
       count: rows.length,
@@ -137,14 +147,24 @@ export class KBarResults extends LitElement {
       this.virtualizer.measureElement(element),
     );
     const rows = this.rows;
-    const active = this.kbar.state?.activeIndex ?? 0;
+    let active = this.kbar.state?.activeIndex ?? 0;
     const opening = this.kbar.state?.open && !this.wasOpen;
     this.wasOpen = this.kbar.state?.open ?? false;
     if (this.previousItems !== rows) {
       this.previousItems = rows;
-      if (active >= this.actions.length && this.actions.length)
-        this.kbar.store?.setActiveIndex(this.actions.length - 1);
       this.virtualizer.scrollToOffset(0);
+    }
+    if (rows.length && (active >= rows.length || typeof rows[active] === 'string')) {
+      let next = Math.min(active, rows.length - 1);
+      if (typeof rows[next] === 'string') {
+        next = rows.findIndex((item, index) => index > next && typeof item !== 'string');
+        if (next < 0) next = rows.length - 1;
+        while (next >= 0 && typeof rows[next] === 'string') next--;
+      }
+      if (next >= 0 && next !== active) {
+        active = next;
+        this.kbar.store?.setActiveIndex(next);
+      }
     }
     if (
       opening ||
@@ -152,8 +172,9 @@ export class KBarResults extends LitElement {
       (this.kbar.state?.open && !this.virtualizer.getVirtualItems().length)
     ) {
       this.previousActive = active;
-      const rowIndex = rows.indexOf(this.actions[active]);
-      if (active === 0) this.virtualizer.scrollToOffset(0);
+      const rowIndex = active;
+      if (active === rows.findIndex((item) => typeof item !== 'string'))
+        this.virtualizer.scrollToOffset(0);
       else if (rowIndex >= 0) this.virtualizer.scrollToIndex(rowIndex, { align: 'auto' });
     }
     // The input and options share a tree scope, including custom items.
@@ -286,23 +307,23 @@ export class KBarResults extends LitElement {
             (row) => {
               const item = rows[row.index];
               const actionIndex = typeof item === 'string' ? -1 : indexes.get(item.id)!;
-              const active = actionIndex >= 0 && actionIndex === store?.state.activeIndex;
+              const active = actionIndex >= 0 && row.index === store?.state.activeIndex;
               return html`<div
                 data-index=${row.index}
                 role=${typeof item === 'string' ? 'presentation' : 'option'}
-                id=${actionIndex >= 0 ? `${store!.uid}-option-${actionIndex}` : nothing}
+                id=${actionIndex >= 0 ? `${store!.uid}-option-${row.index}` : nothing}
                 aria-selected=${actionIndex >= 0 ? String(active) : nothing}
                 aria-posinset=${actionIndex >= 0 ? actionIndex + 1 : nothing}
                 aria-setsize=${actionIndex >= 0 ? actions.length : nothing}
                 style=${styleMap({ transform: `translateY(${row.start}px)` })}
                 @pointermove=${(event: PointerEvent) => {
                   if ((event.movementX || event.movementY) && actionIndex >= 0 && !active)
-                    store?.setActiveIndex(actionIndex);
+                    store?.setActiveIndex(row.index);
                 }}
                 @pointerdown=${(event: PointerEvent) => {
                   if (actionIndex >= 0) {
                     event.preventDefault();
-                    store?.setActiveIndex(actionIndex);
+                    store?.setActiveIndex(row.index);
                   }
                 }}
                 @click=${() => {
