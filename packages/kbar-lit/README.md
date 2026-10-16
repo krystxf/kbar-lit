@@ -114,18 +114,25 @@ palette.show();
 
 ## Component API
 
-| Element           | Responsibility                                                | Properties                                                                      |
-| ----------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `kbar-provider`   | Store, context, global shortcuts, lifecycle events            | `store`, `actions`, `options`                                                   |
-| `kbar-portal`     | Top-layer dialog, focus, scroll lock, optional DOM projection | `container`, `label`, `modal` (default `true`), `disableCloseOnOuterClick`      |
-| `kbar-positioner` | Full-width centered layout                                    | Standard `style` / `class`                                                      |
-| `kbar-animator`   | Appearance, height and nested-navigation animations           | `disableCloseOnOuterClick`, standard `style` / `class`                          |
-| `kbar-search`     | Controlled input and nested Backspace navigation              | `placeholder`, `defaultPlaceholder`, `label`; `.input` exposes the native input |
-| `kbar-results`    | Virtualized listbox, keyboard/pointer selection               | `items`, `onRender`, `maxHeight`, `emptyText`                                   |
+| Element           | Responsibility                                                | Properties                                                                                                            |
+| ----------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `kbar-provider`   | Store, context, global shortcuts, lifecycle events            | `store`, `actions`, `options`                                                                                         |
+| `kbar-portal`     | Top-layer dialog, focus, scroll lock, optional DOM projection | `container`, `label`, `modal` (default `true`), `disableCloseOnOuterClick`                                            |
+| `kbar-positioner` | Full-width centered layout                                    | Standard `style` / `class`                                                                                            |
+| `kbar-animator`   | Appearance, height and nested-navigation animations           | `disableCloseOnOuterClick`, standard `style` / `class`                                                                |
+| `kbar-search`     | Controlled input and nested Backspace navigation              | `placeholder`, `defaultPlaceholder`, `label`, `inputAttributes`, `inputProperties`; `.input` exposes the native input |
+| `kbar-results`    | Virtualized listbox, keyboard/pointer selection               | `items`, `onRender`, `maxHeight`, `emptyText`                                                                         |
 
 Object/function properties are JavaScript properties, not JSON attributes. Camel-case boolean properties also have kebab-case attributes, such as `disable-close-on-outer-click`.
 
 The portal uses native `<dialog>` in the browser top layer, which escapes ancestor clipping and stacking contexts. Its optional `.container = targetElement` projects the content into another DOM container while forwarding Lit context. Removing the owner cleans up the projection. Keep the target outside the portal. Set `.modal = false` when integrating with an existing modal manager.
+
+Pass native input attributes and writable properties through the search element. Replace these objects to update them; removing an entry restores its original value. Native event handlers coexist with the palette's query updates. The controlled value, placeholder, autocomplete, spellcheck, role, and ARIA state/relationships remain managed by the component. Use `label` or `inputAttributes['aria-label']` for an accessible name.
+
+```ts
+search.inputAttributes = { name: 'command', 'data-testid': 'command-input', required: true };
+search.inputProperties = { maxLength: 120, oninput: () => trackSearchInput() };
+```
 
 Search and results intentionally render into light DOM so `aria-controls` and `aria-activedescendant` resolve in the same tree scope. Keep them in the same DOM/shadow root. The convenience palette handles this automatically. Put custom non-animator panels inside an element with `data-kbar-panel` to define the outside-click boundary.
 

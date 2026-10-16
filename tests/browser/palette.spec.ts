@@ -248,3 +248,43 @@ test('reopening after a nested command retains measured rows and valid active de
   await expect(page.locator(`[id="${activeId}"]`)).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('search forwards native input attributes, properties and event handlers and resets removed options', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const search = document.querySelector('kbar-search')!;
+    search.inputAttributes = {
+      name: 'command',
+      'data-custom': 'forwarded',
+      required: true,
+      role: 'button',
+    };
+    search.inputProperties = {
+      maxLength: 20,
+      oninput: () => {
+        document.body.dataset.inputObserved = 'yes';
+      },
+    };
+  });
+  await page.locator('#open').click();
+  const input = page.getByRole('combobox');
+  await expect(input).toHaveAttribute('name', 'command');
+  await expect(input).toHaveAttribute('data-custom', 'forwarded');
+  await expect(input).toHaveAttribute('required', '');
+  await expect(input).toHaveAttribute('maxlength', '20');
+  await input.fill('night');
+  await expect(page.locator('body')).toHaveAttribute('data-input-observed', 'yes');
+  await expect(page.getByRole('option', { selected: true })).toContainText('Dark mode');
+  await page.evaluate(() => {
+    const search = document.querySelector('kbar-search')!;
+    search.inputAttributes = {};
+    search.inputProperties = {};
+    delete document.body.dataset.inputObserved;
+  });
+  await expect(input).not.toHaveAttribute('required');
+  await expect(input).not.toHaveAttribute('data-custom');
+  await input.fill('light');
+  await expect(page.locator('body')).not.toHaveAttribute('data-input-observed');
+  expect(await input.evaluate((element) => (element as HTMLInputElement).maxLength)).toBe(-1);
+});

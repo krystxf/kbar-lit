@@ -7,11 +7,63 @@ export class KBarSearch extends LitElement {
   static properties = {
     placeholder: {},
     label: {},
+    inputAttributes: { attribute: false },
+    inputProperties: { attribute: false },
     defaultPlaceholder: { attribute: 'default-placeholder' },
   };
   placeholder = '';
   defaultPlaceholder = 'Type a command or search…';
   label = 'Search commands';
+  /** Native input customization; palette-owned value and ARIA wiring stay managed. */
+  inputAttributes: Record<string, string | boolean | null | undefined> = {};
+  inputProperties: Partial<HTMLInputElement> = {};
+  private originalAttributes = new Map<string, string | null>();
+  private originalProperties = new Map<string, unknown>();
+  private syncInputOptions() {
+    const input = this.input;
+    if (!input) return;
+    const managed = new Set([
+      'value',
+      'role',
+      'autocomplete',
+      'spellcheck',
+      'placeholder',
+      'aria-expanded',
+      'aria-controls',
+      'aria-activedescendant',
+      'aria-busy',
+      'aria-autocomplete',
+    ]);
+    for (const [name, value] of this.originalAttributes) {
+      if (!(name in this.inputAttributes)) {
+        if (value === null) input.removeAttribute(name);
+        else input.setAttribute(name, value);
+        this.originalAttributes.delete(name);
+      }
+    }
+    for (const [name, value] of Object.entries(this.inputAttributes)) {
+      if (managed.has(name.toLowerCase())) continue;
+      if (!this.originalAttributes.has(name))
+        this.originalAttributes.set(name, input.getAttribute(name));
+      if (value === null || value === undefined || value === false) input.removeAttribute(name);
+      else input.setAttribute(name, value === true ? '' : value);
+    }
+    const properties = input as unknown as Record<string, unknown>;
+    for (const [name, value] of this.originalProperties) {
+      if (!(name in this.inputProperties)) {
+        // The browser exposes -1 for absent length limits but rejects assigning it.
+        if ((name === 'maxLength' || name === 'minLength') && value === -1)
+          input.removeAttribute(name.toLowerCase());
+        else properties[name] = value;
+        this.originalProperties.delete(name);
+      }
+    }
+    for (const [name, value] of Object.entries(this.inputProperties)) {
+      if (managed.has(name.toLowerCase()) || name.startsWith('aria')) continue;
+      if (!this.originalProperties.has(name)) this.originalProperties.set(name, properties[name]);
+      properties[name] = value;
+    }
+  }
   private kbar = new KBarController(this);
   private previousRoot?: string | null;
   private composing = false;
@@ -23,6 +75,7 @@ export class KBarSearch extends LitElement {
     return this.querySelector('input') ?? undefined;
   }
   protected updated() {
+    this.syncInputOptions();
     const store = this.kbar.store;
     if (!store) return;
     store.query.inputRefSetter(this.input);
