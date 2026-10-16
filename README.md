@@ -2,7 +2,7 @@
 
 A Lit / Web Components port of [kbar](https://github.com/timc1/kbar), with real framework integration examples. All examples consume the **same `kbar-lit` workspace package**. They do not use React kbar or reimplement the command menu.
 
-The repository uses **pnpm and Turborepo** for dependency management, builds, development, and validation. Full upstream feature parity is an active objective; the current [parity audit](./PARITY.md) records the remaining behavioral differences. Passing integration tests alone does not prove complete parity.
+The repository uses **pnpm and Turborepo** for dependency management, builds, development, and validation. The library implements the feature set of the pinned upstream kbar reference with Lit components and controllers. The [parity audit](./PARITY.md) maps each feature to its implementation and validation, and documents the framework adaptations.
 
 ## Workspace
 
@@ -76,7 +76,7 @@ pnpm format:check
 pnpm --filter kbar-lit pack --out /tmp/kbar-lit.tgz
 ```
 
-`pnpm check` runs workspace type checks, unit tests, production builds, library browser tests, production integration tests for all three frameworks, and direct comparisons against a pinned test-only upstream fixture. The browser suites run in Chromium and WebKit and include axe accessibility scans. Each framework integration test checks that the registered Lit element is mounted, executes actions, verifies state/event updates, and exercises undo/redo and dynamic actions.
+`pnpm check` runs workspace type checks, unit tests, production builds, library browser tests, production integration tests for all three frameworks, direct comparisons against a pinned test-only upstream fixture, and installation/type checks of the packed library in an isolated consumer. The browser suites run in Chromium and WebKit and include axe accessibility scans. Each framework integration test checks that the registered Lit element is mounted, executes actions, verifies state/event updates, and exercises undo/redo and dynamic actions.
 
 Turborepo caches package builds and type checks in dependency order. Browser tests are always executed against running apps, not cached results. `pnpm test:examples` expects `pnpm build` to have completed first.
 

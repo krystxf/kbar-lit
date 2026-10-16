@@ -297,7 +297,7 @@ pnpm format:check
 pnpm --filter kbar-lit pack --dry-run
 ```
 
-Core tests cover the action tree, search, registration, history, failures, callbacks, and animation transitions. Browser tests exercise both composed and convenience APIs in Chromium and WebKit, including axe accessibility scans, focus, shortcuts, 10,000 actions, measured custom rows, async failures, options, and portal cleanup. The [GitHub Actions template](./ci/github-actions.yml) runs the same checks on Linux. Move it to `.github/workflows/ci.yml` using a GitHub login with workflow permission to enable it. The current repository login can push code but cannot create Actions workflows.
+Core tests cover the action tree, search, registration, history, failures, callbacks, and animation transitions. Browser tests exercise both composed and convenience APIs in Chromium and WebKit, including axe accessibility scans, focus, shortcuts, 10,000 actions, measured custom rows, async failures, options, and portal cleanup. The [GitHub Actions template](https://github.com/krystxf/kbar-lit/blob/main/ci/github-actions.yml) runs the same checks on Linux. Move it to `.github/workflows/ci.yml` using a GitHub login with workflow permission to enable it. The current repository login can push code but cannot create Actions workflows.
 
 Modern browsers with custom elements, Shadow DOM, native dialog, ResizeObserver, and Web Animations are required. The headless `core` entry point is DOM-independent; full server rendering of the UI is not provided.
 
