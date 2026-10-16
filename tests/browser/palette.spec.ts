@@ -295,3 +295,153 @@ test('search forwards native input attributes, properties and event handlers and
   await expect(page.locator('body')).not.toHaveAttribute('data-input-observed');
   expect(await input.evaluate((element) => (element as HTMLInputElement).maxLength)).toBe(-1);
 });
+
+for (const disableDocumentLock of [false, true]) {
+  for (const disableScrollbarManagement of [false, true]) {
+    test(`document lock=${!disableDocumentLock}, scrollbar management=${!disableScrollbarManagement}`, async ({
+      page,
+    }) => {
+      await page.evaluate(
+        ({ disableDocumentLock, disableScrollbarManagement }) => {
+          // Supply a deterministic scrollbar width, including on overlay-scrollbar systems.
+          Object.defineProperty(document.documentElement, 'clientWidth', {
+            configurable: true,
+            get: () => innerWidth - 17,
+          });
+          document.body.style.overflow = 'scroll';
+          document.body.style.paddingRight = '12px';
+          document.querySelector('kbar-provider')!.options = {
+            disableDocumentLock,
+            disableScrollbarManagement,
+            animations: { enterMs: 0, exitMs: 0 },
+          };
+        },
+        { disableDocumentLock, disableScrollbarManagement },
+      );
+      await page.locator('#open').click();
+      await expect(page.getByRole('combobox')).toBeVisible();
+      await expect(page.locator('body')).toHaveCSS(
+        'overflow',
+        disableDocumentLock ? 'scroll' : 'hidden',
+      );
+      await expect(page.locator('body')).toHaveCSS(
+        'padding-right',
+        disableDocumentLock || disableScrollbarManagement ? '12px' : '29px',
+      );
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).not.toBeVisible();
+      await expect(page.locator('body')).toHaveCSS('overflow', 'scroll');
+      await expect(page.locator('body')).toHaveCSS('padding-right', '12px');
+    });
+  }
+}
+
+test('disabled providers close and reject shortcuts until enabled again', async ({ page }) => {
+  await page.locator('#open').click();
+  await page.evaluate(() => document.querySelector('kbar-provider')!.store.query.disable(true));
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.keyboard.press('g');
+  await page.keyboard.press('h');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('#activity')).toHaveText('Ready when you are.');
+  await page.evaluate(() => document.querySelector('kbar-provider')!.store.query.disable(false));
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.getByRole('combobox')).toBeFocused();
+});
+
+test('reduced motion removes visual animation durations', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#open').click();
+  await expect(page.getByRole('combobox')).toBeVisible();
+  const durations = await page
+    .locator('kbar-animator')
+    .evaluate((element) =>
+      element.getAnimations().map((animation) => animation.effect?.getTiming().duration),
+    );
+  expect(durations.every((duration) => duration === 0)).toBe(true);
+  await expect(page.locator('kbar-animator')).toHaveCSS('opacity', '1');
+});
+
+test('changing portal targets while open preserves the live palette and restores children', async ({
+  page,
+}) => {
+  await page.locator('#open').click();
+  await page.getByRole('combobox').fill('night');
+  await page.evaluate(async () => {
+    const portal = document.querySelector('kbar-portal')!;
+    const first = document.body.appendChild(document.createElement('section'));
+    first.id = 'portal-first';
+    const second = document.body.appendChild(document.createElement('section'));
+    second.id = 'portal-second';
+    portal.container = first;
+    await portal.updateComplete;
+    portal.container = second;
+    await portal.updateComplete;
+  });
+  await expect(page.locator('#portal-first kbar-search')).toHaveCount(0);
+  await expect(page.locator('#portal-second kbar-search input')).toHaveValue('night');
+  await expect(page.getByRole('option', { selected: true })).toContainText('Dark mode');
+  await page.evaluate(async () => {
+    const portal = document.querySelector('kbar-portal')!;
+    portal.container = undefined;
+    await portal.updateComplete;
+  });
+  await expect(page.locator('#portal-second kbar-search')).toHaveCount(0);
+  await expect(page.locator('kbar-portal kbar-search input')).toHaveValue('night');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('animator applies configured entrance, exit, height and nested transitions', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const original = Element.prototype.animate;
+    const records: { frames: unknown; duration: unknown; direction: unknown }[] = [];
+    Element.prototype.animate = function (frames, options) {
+      if (this.localName === 'kbar-animator') {
+        records.push({
+          frames,
+          duration: typeof options === 'number' ? options : options?.duration,
+          direction: typeof options === 'number' ? undefined : options?.direction,
+        });
+        document.body.dataset.animations = JSON.stringify(records);
+      }
+      return original.call(this, frames, options);
+    };
+    document.querySelector('kbar-provider')!.options = { animations: { enterMs: 40, exitMs: 30 } };
+  });
+  await page.locator('#open').click();
+  const input = page.getByRole('combobox');
+  await expect(input).toBeVisible();
+  await expect(page.locator('kbar-animator')).toHaveCSS('opacity', '1');
+  await input.fill('Change theme');
+  await expect(page.getByRole('option')).toHaveCount(1);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const records = JSON.parse(document.body.dataset.animations ?? '[]');
+        return records.some(
+          (record: { frames: Keyframe[]; duration: number }) =>
+            record.frames.some((frame) => 'height' in frame) && record.duration === 20,
+        );
+      }),
+    )
+    .toBe(true);
+  await input.press('Enter');
+  await expect(input).toHaveAttribute('placeholder', 'Change theme');
+  await input.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const records = await page.evaluate(() => JSON.parse(document.body.dataset.animations ?? '[]'));
+  expect(records).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ duration: 40, direction: 'normal' }),
+      expect.objectContaining({ duration: 30, direction: 'reverse' }),
+      expect.objectContaining({
+        duration: 40,
+        frames: [{ transform: 'scale(1)' }, { transform: 'scale(.98)' }, { transform: 'scale(1)' }],
+      }),
+    ]),
+  );
+});
