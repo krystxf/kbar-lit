@@ -53,6 +53,8 @@ export class ActionImpl implements Action {
   readonly icon?: unknown;
   readonly command?: Command;
   readonly perform?: () => Promise<void>;
+  private attachedChildren?: ActionImpl[];
+  private attachedAncestors?: ActionImpl[];
   private lookup: () => ReadonlyMap<string, ActionImpl>;
   constructor(
     action: Action,
@@ -72,21 +74,47 @@ export class ActionImpl implements Action {
     this.parent = action.parent;
     this.priority = action.priority ?? 0;
     this.icon = action.icon;
+    // Imperatively constructed actions own their relationships, including children
+    // that have not been inserted into the caller's dictionary yet.
+    if (typeof options !== 'function') {
+      this.attachedChildren = [];
+      this.attachedAncestors = [];
+      if (action.parent) {
+        const parent = options.store[action.parent];
+        if (!parent) throw new Error(`Unknown parent: ${action.parent}`);
+        parent.addChild(this);
+      }
+    }
     if (action.perform) {
       this.command = new Command(() => action.perform!(this), history);
       this.perform = () => this.command!.perform();
     }
   }
+  addChild(child: ActionImpl) {
+    this.attachedChildren ??= this.children;
+    child.attachedAncestors ??= child.ancestors;
+    child.attachedAncestors.unshift(...this.ancestors, this);
+    this.attachedChildren.push(child);
+  }
+  removeChild(child: ActionImpl) {
+    this.attachedChildren ??= this.children;
+    const index = this.attachedChildren.indexOf(child);
+    if (index !== -1) this.attachedChildren.splice(index, 1);
+    for (const descendant of child.children) this.removeChild(descendant);
+  }
   static create(action: Action, options: ActionImplOptions) {
     return new ActionImpl(action, options);
   }
-  get children() {
+  get children(): ActionImpl[] {
+    if (this.attachedChildren) return this.attachedChildren;
     return [...this.lookup().values()].filter((action) => action.parent === this.id);
   }
   get parentActionImpl(): ActionImpl | undefined {
+    if (this.attachedAncestors) return this.attachedAncestors.at(-1);
     return this.parent ? this.lookup().get(this.parent) : undefined;
   }
   get ancestors(): ActionImpl[] {
+    if (this.attachedAncestors) return this.attachedAncestors;
     const result: ActionImpl[] = [];
     let parent = this.parentActionImpl;
     while (parent) {

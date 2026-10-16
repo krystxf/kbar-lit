@@ -5,6 +5,7 @@ declare global {
   interface Window {
     historyScenario(): unknown;
     registryScenario(): unknown;
+    treeScenario(): unknown;
     parity: {
       clearEvents(): void;
       snapshot(): {
@@ -132,7 +133,7 @@ test('object collectors do not notify when selected state is unchanged', async (
   expect(counts[1]).toEqual(counts[0]);
 });
 
-for (const scenario of ['historyScenario', 'registryScenario'] as const) {
+for (const scenario of ['historyScenario', 'registryScenario', 'treeScenario'] as const) {
   test(`${scenario} matches upstream's public imperative API`, async ({ browser }) => {
     const outputs = [];
     for (const engine of ['react', 'lit']) {

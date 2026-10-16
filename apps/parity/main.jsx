@@ -13,6 +13,7 @@ import {
   history as referenceHistory,
   Command as ReferenceCommand,
   ActionInterface as ReferenceActionInterface,
+  ActionImpl as ReferenceActionImpl,
 } from '@kbar-lit/parity-oracle';
 import {
   KBarStore,
@@ -20,6 +21,7 @@ import {
   Command,
   history as litHistory,
   ActionInterface as LitActionInterface,
+  ActionImpl as LitActionImpl,
 } from 'kbar-lit';
 import 'kbar-lit/register';
 
@@ -219,4 +221,39 @@ window.registryScenario = () => {
   const name = registry.actions.child.name;
   registry.remove([{ id: 'parent', name: 'Parent' }]);
   return { metadata, name, remaining: Object.keys(registry.actions) };
+};
+
+window.treeScenario = () => {
+  const Constructor = engine === 'react' ? ReferenceActionImpl : LitActionImpl;
+  const parent = Constructor.create({ id: 'p', name: 'Parent' }, { store: {} });
+  const child = Constructor.create(
+    { id: 'c', name: 'Child', parent: 'p' },
+    { store: { p: parent } },
+  );
+  const grandchild = Constructor.create(
+    { id: 'g', name: 'Grandchild', parent: 'c' },
+    { store: { c: child } },
+  );
+  const frames = [];
+  const capture = () =>
+    frames.push({
+      children: parent.children.map((a) => a.id),
+      descendants: child.children.map((a) => a.id),
+      ancestors: grandchild.ancestors.map((a) => a.id),
+      parent: grandchild.parentActionImpl?.id,
+    });
+  capture();
+  parent.removeChild(child);
+  capture();
+  const detached = Constructor.create({ id: 'd', name: 'Detached' }, { store: {} });
+  parent.addChild(detached);
+  capture();
+  frames.push({ attachedAncestors: detached.ancestors.map((a) => a.id) });
+  let invalidParentRejected = false;
+  try {
+    Constructor.create({ id: 'invalid', name: 'Invalid', parent: 'missing' }, { store: {} });
+  } catch {
+    invalidParentRejected = true;
+  }
+  return { frames, invalidParentRejected };
 };

@@ -25,13 +25,15 @@ export class ActionInterface {
     return { ...this.actions };
   }
   remove(actions: Action[]) {
-    const remove = (id: string) => {
-      const action = this.actions[id];
-      if (!action) return;
-      for (const child of action.children) remove(child.id);
-      delete this.actions[id];
+    const remove = (action: ActionImpl) => {
+      for (const child of [...action.children]) remove(child);
+      action.parentActionImpl?.removeChild(action);
+      delete this.actions[action.id];
     };
-    actions.forEach((action) => remove(action.id));
+    actions.forEach(({ id }) => {
+      const action = this.actions[id];
+      if (action) remove(action);
+    });
     return { ...this.actions };
   }
 }
