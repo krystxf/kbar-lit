@@ -19,7 +19,7 @@ declare global {
       search(value: string): void;
       root(value: string | null): void;
       setIndex(index: number): void;
-      register(values: { id: string; name: string }[]): void;
+      register(values: { id: string; name: string; shortcut?: string[] }[]): void;
       unregister(): void;
       execute(id: string): Promise<void>;
       undo(): Promise<void>;
@@ -224,3 +224,30 @@ test('programmatic queries do not synthesize user input callbacks', async ({ bro
   }
   expect(outputs[1]).toEqual(outputs[0]);
 });
+
+for (const withCommand of [false, true]) {
+  test(`group shortcut opens children ${withCommand ? 'with' : 'without'} a parent command`, async ({
+    browser,
+  }) => {
+    const outputs = [];
+    for (const engine of ['react', 'lit']) {
+      const page = await browser.newPage();
+      await ready(page, `${engine}${withCommand ? '&parentCommand=1' : ''}`);
+      await page.getByRole('combobox').press('Escape');
+      await snapshot(page);
+      await page.evaluate(() => window.parity.clearEvents());
+      await page.keyboard.press('t');
+      const state = await snapshot(page);
+      outputs.push({
+        root: state.root,
+        events: state.events,
+        value: state.value,
+        results: state.results,
+      });
+      expect(state.root).toBe('theme');
+      expect(state.value).toBe(0);
+      await page.close();
+    }
+    expect(outputs[1]).toEqual(outputs[0]);
+  });
+}

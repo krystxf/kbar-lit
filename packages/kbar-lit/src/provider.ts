@@ -124,7 +124,14 @@ export class KBarProvider extends LitElement {
             .join(' ')
         ] = (event) => {
           event.preventDefault();
-          void this.execute(action.id);
+          // Global shortcuts open child groups even when the parent also has a
+          // command. Selecting that same row in results executes its command.
+          if (action.children.length) {
+            this.store.setRoot(action.id);
+            this.store.show();
+          } else {
+            void this.execute(action.id);
+          }
         };
     }
     if (this.store.options.enableHistory) {

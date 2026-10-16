@@ -67,6 +67,8 @@ const options = {
 const serialize = (items) =>
   items.map((item) => (typeof item === 'string' ? `section:${item}` : item.id));
 const engine = new URLSearchParams(location.search).get('engine') ?? 'lit';
+if (new URLSearchParams(location.search).has('parentCommand'))
+  actions.find((action) => action.id === 'theme').perform = perform;
 function installAPI(getState, getResults, query, history) {
   window.parity = {
     clearEvents: () => {
