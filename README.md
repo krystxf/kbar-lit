@@ -76,7 +76,7 @@ pnpm format:check
 pnpm --filter kbar-lit pack --out /tmp/kbar-lit.tgz
 ```
 
-`pnpm check` runs workspace type checks, unit tests, production builds, library browser tests, and production integration tests for all three frameworks. The browser suites run in Chromium and WebKit and include axe accessibility scans. Each framework integration test checks that the registered Lit element is mounted, executes actions, verifies state/event updates, and exercises undo/redo and dynamic actions.
+`pnpm check` runs workspace type checks, unit tests, production builds, library browser tests, production integration tests for all three frameworks, and direct comparisons against a pinned test-only upstream fixture. The browser suites run in Chromium and WebKit and include axe accessibility scans. Each framework integration test checks that the registered Lit element is mounted, executes actions, verifies state/event updates, and exercises undo/redo and dynamic actions.
 
 Turborepo caches package builds and type checks in dependency order. Browser tests are always executed against running apps, not cached results. `pnpm test:examples` expects `pnpm build` to have completed first.
 

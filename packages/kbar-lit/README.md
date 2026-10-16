@@ -9,7 +9,7 @@ A **Lit / Web Components rewrite of [kbar](https://github.com/timc1/kbar)**. The
 - Enter/exit, height, and nested-navigation animations; reduced-motion support
 - Modal focus containment, focus restoration, screen-reader announcements, and document locking
 - Dynamic action registration and lifecycle cleanup
-- Per-store and per-command undo/redo, including asynchronous commands
+- Shared or isolated history and per-command undo/redo, including asynchronous commands
 - Custom portal containers, CSS customization, callbacks, and DOM events
 
 ## Run locally
@@ -182,7 +182,7 @@ const stopQuery = store.subscribe(
   (state) => state.searchQuery,
   (query) => searchChanged(query),
 );
-// Selector subscriptions use Object.is by default; a third argument can supply equality.
+// Selector subscriptions use structural equality by default; a third argument can supply equality.
 ```
 
 ### Options
@@ -215,7 +215,7 @@ Arrows and Ctrl+N/P navigate without wrapping, Enter selects, Escape closes, and
 
 Return an undo function from `perform`. With history enabled, use `await store.history.undo()` / `redo()`, or `action.command.history.undo()` / `redo()` for the action's latest execution. Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z work outside editable fields while the palette is closed.
 
-Every execution gets its own history entry. New commands clear the redo stack. Failed undo/redo operations remain retryable. History is isolated per store. `undoStack`, `redoStack`, `canUndo`, `canRedo`, `add`, `remove`, and `reset` are available for custom controls.
+A command retains its latest history entry, replacing its prior entry on repeated execution. Unrelated redo entries are preserved. History is shared by default; pass `historyManager: new KBarHistory()` in store options to isolate it. Failed undo/redo operations remain retryable. `undoStack`, `redoStack`, `canUndo`, `canRedo`, `add`, `remove`, and `reset` are available for custom controls.
 
 Async `perform` functions are awaited. The store prevents duplicate execution while busy, keeps failed commands open, and exposes errors for display. Calling `store.select()` directly rejects on failure; the built-in UI catches failures and emits `kbar-error`.
 
