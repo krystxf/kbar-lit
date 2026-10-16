@@ -192,11 +192,18 @@ test('dynamic registration removal clamps selection and reconnects cleanly', asy
     provider.actions = [{ id: 'new', name: 'New action' }];
   });
   await expect(page.getByRole('option', { selected: true })).toHaveText('New action');
-  await page.evaluate(() => {
+  const stillOpen = await page.evaluate(async () => {
     const provider = document.querySelector('kbar-provider')!;
+    const dialog = provider.querySelector('kbar-portal')!.shadowRoot!.querySelector('dialog')!;
+    const closed = new Promise<void>((resolve) =>
+      dialog.addEventListener('close', () => resolve(), { once: true }),
+    );
     provider.remove();
     document.body.append(provider);
+    await closed;
+    return provider.store.state.open;
   });
+  expect(stillOpen).toBe(true);
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('combobox').press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();

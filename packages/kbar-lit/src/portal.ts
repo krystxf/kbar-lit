@@ -106,9 +106,7 @@ export class KBarPortal extends LitElement {
       event.preventDefault();
       this.kbar.store?.hide();
     });
-    dialog.addEventListener('close', () => {
-      if (this.kbar.state?.open) this.kbar.store?.hide();
-    });
+    dialog.addEventListener('close', this.onClose);
     for (const type of ['kbar-select', 'kbar-error'])
       mount.addEventListener(type, (event) => {
         event.stopPropagation();
@@ -159,8 +157,24 @@ export class KBarPortal extends LitElement {
       );
     } else if (!visible && dialog.open) this.close();
   }
+  private pendingCloses = new WeakMap<HTMLDialogElement, number>();
+  private onClose = (event: Event) => {
+    const dialog = event.target as HTMLDialogElement;
+    const pending = this.pendingCloses.get(dialog) ?? 0;
+    if (pending) {
+      this.pendingCloses.set(dialog, pending - 1);
+      return;
+    }
+    if (dialog === this.dialog && !dialog.open && this.kbar.state?.open) this.kbar.store?.hide();
+  };
   private close() {
-    this.dialog?.close();
+    const dialog = this.dialog;
+    if (dialog?.open) {
+      // Native close events are queued. A detach/project/reopen may finish
+      // before dispatch, so consume exactly the events caused by our cleanup.
+      this.pendingCloses.set(dialog, (this.pendingCloses.get(dialog) ?? 0) + 1);
+      dialog.close();
+    }
     this.release?.();
     this.release = undefined;
     if (this.previousFocus?.isConnected) this.previousFocus.focus({ preventScroll: true });
@@ -193,9 +207,7 @@ export class KBarPortal extends LitElement {
         event.preventDefault();
         this.kbar.store?.hide();
       }}
-      @close=${() => {
-        if (this.kbar.state?.open) this.kbar.store?.hide();
-      }}
+      @close=${this.onClose}
     >
       <slot></slot>
     </dialog>`;
