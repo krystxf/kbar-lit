@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
+  outputDir: 'test-results/parity',
   testDir: './tests/parity',
   fullyParallel: true,
   workers: 4,
