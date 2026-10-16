@@ -12,12 +12,13 @@
     "typecheck": "turbo run typecheck && tsc --noEmit",
     "test": "turbo run test",
     "test:browser": "pnpm exec playwright test",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm test:examples && pnpm test:parity",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm test:examples && pnpm test:parity && pnpm test:package",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:examples": "pnpm exec playwright test -c playwright.examples.config.ts",
     "test:parity": "pnpm verify:parity && pnpm exec playwright test -c playwright.parity.config.ts",
-    "verify:parity": "node scripts/verify-parity-fixture.mjs"
+    "verify:parity": "node scripts/verify-parity-fixture.mjs",
+    "test:package": "node scripts/verify-package.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
