@@ -85,3 +85,31 @@ A [GitHub Actions template](./ci/github-actions.yml) is included. Enabling it re
 ## License
 
 MIT. The original kbar notice is retained in [LICENSE](./LICENSE). This project is independent of upstream kbar.
+
+## Deploy all examples as one site
+
+```sh
+pnpm build:site
+pnpm preview:site
+```
+
+Open http://127.0.0.1:4300 for the contents page. The deployment contains
+`/angular/`, `/react/` (Next.js static export), `/vue/`, and `/lit/`.
+Turborepo builds each app and its shared dependencies, then the assembly script
+copies the results and landing page into `dist/site`.
+
+Vercel configuration is included in `vercel.json`. Import this repository into
+Vercel and use the repository root as the Root Directory. The configuration
+uses `pnpm build:site`, publishes `dist/site`, and routes Angular and Vue deep
+links to their respective entry pages. The framework preset is set to Other
+(`framework: null`) because this deployment combines multiple frameworks.
+For another static host, upload the contents of `dist/site`, serve directory
+`index.html` files, and configure Angular and Vue deep links to fall back to
+`/angular/index.html` and `/vue/index.html` respectively (after checking for real
+files). Next.js exports its own route HTML. The React deployment is static;
+server-only Next.js features require a different hosting setup.
+
+Edit `site/index.html` to update the contents page. The regular `pnpm build`
+and individual development commands continue to use the apps' root URLs.
+Run the appropriate build again when switching between standalone previews and
+the combined site, since their app build directories are shared.

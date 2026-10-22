@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore kbar-lit command menus in Angular, React, Vue and Lit."
+    />
+    <title>kbar-lit — Framework examples</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: #101214;
+        color: #f4f5f6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1000px;
+        margin: auto;
+        padding: 88px 24px;
+      }
+      .eyebrow {
+        color: #a3e6c3;
+        font-size: 13px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: clamp(40px, 7vw, 72px);
+        line-height: 1.08;
+        letter-spacing: -0.05em;
+        margin: 24px 0;
+      }
+      .intro {
+        max-width: 620px;
+        color: #b4bac3;
+        font-size: 19px;
+        line-height: 1.7;
+      }
+      nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin: 48px 0;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .card {
+        display: block;
+        border: 1px solid #343940;
+        border-radius: 16px;
+        padding: 28px;
+        background: #191c20;
+        transition:
+          border-color 0.15s,
+          transform 0.15s;
+      }
+      .card:hover {
+        border-color: #a3e6c3;
+        transform: translateY(-3px);
+      }
+      a:focus-visible {
+        outline: 3px solid #a3e6c3;
+        outline-offset: 5px;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 24px;
+      }
+      .card p {
+        color: #b4bac3;
+        line-height: 1.6;
+        margin: 0 0 24px;
+      }
+      .path {
+        font-family: ui-monospace, monospace;
+        color: #a3e6c3;
+        font-size: 14px;
+      }
+      footer {
+        color: #a2a9b3;
+        line-height: 1.7;
+        font-size: 14px;
+      }
+      kbd {
+        border: 1px solid #424952;
+        border-radius: 5px;
+        padding: 2px 6px;
+        color: #e1e5ea;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding-top: 48px;
+        }
+        nav {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">kbar-lit / Examples</div>
+      <h1>One command menu.<br />Every framework.</h1>
+      <p class="intro">
+        Explore the same Lit-powered command menu across four applications. Pick an example to try
+        searching, nested commands and keyboard shortcuts.
+      </p>
+      <nav aria-label="Framework examples">
+        <a class="card" href="/angular/"
+          ><h2>Angular ↗</h2>
+          <p>Standalone components, signals and native property bindings.</p>
+          <span class="path">/angular/</span></a
+        >
+        <a class="card" href="/react/"
+          ><h2>React / Next.js ↗</h2>
+          <p>React state, client-side registration and native custom events.</p>
+          <span class="path">/react/</span></a
+        >
+        <a class="card" href="/vue/"
+          ><h2>Vue ↗</h2>
+          <p>Single-file components, reactive state and custom elements.</p>
+          <span class="path">/vue/</span></a
+        >
+        <a class="card" href="/lit/"
+          ><h2>Lit ↗</h2>
+          <p>The original demo with custom rendering and asynchronous commands.</p>
+          <span class="path">/lit/</span></a
+        >
+      </nav>
+      <footer>
+        All examples use the same kbar-lit library.<br />Inside an example, press <kbd>⌘ K</kbd> or
+        <kbd>Ctrl K</kbd> to open the menu.
+      </footer>
+    </main>
+  </body>
+</html>

@@ -6,7 +6,8 @@
     "dev": "vite --host 127.0.0.1 --port 4202",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4202",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "build:site": "vite build --base=/vue/"
   },
   "dependencies": {
     "@kbar-lit/example-actions": "workspace:*",

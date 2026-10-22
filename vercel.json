@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "pnpm build:site",
+  "outputDirectory": "dist/site",
+  "trailingSlash": true,
+  "rewrites": [
+    { "source": "/angular/:path*", "destination": "/angular/index.html" },
+    { "source": "/vue/:path*", "destination": "/vue/index.html" }
+  ]
+}

@@ -5,7 +5,8 @@
     "dev": "next dev --hostname 127.0.0.1 --port 4201",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 4201",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "build:site": "KBAR_STATIC_SITE=1 next build"
   },
   "dependencies": {
     "@kbar-lit/example-actions": "workspace:*",

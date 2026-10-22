@@ -18,7 +18,9 @@
     "test:examples": "pnpm exec playwright test -c playwright.examples.config.ts",
     "test:parity": "pnpm verify:parity && pnpm exec playwright test -c playwright.parity.config.ts",
     "verify:parity": "node scripts/verify-parity-fixture.mjs",
-    "test:package": "node scripts/verify-package.mjs"
+    "test:package": "node scripts/verify-package.mjs",
+    "build:site": "turbo run build:site && node scripts/assemble-site.mjs",
+    "preview:site": "node scripts/serve-static.mjs dist/site 4300"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -5,7 +5,8 @@
     "dev": "ng serve --host 127.0.0.1 --port 4203",
     "build": "ng build",
     "typecheck": "ngc -p tsconfig.app.json --noEmit",
-    "preview": "node ../../scripts/serve-static.mjs dist/browser 4203"
+    "preview": "node ../../scripts/serve-static.mjs dist/browser 4203",
+    "build:site": "ng build --base-href /angular/"
   },
   "dependencies": {
     "@angular/common": "22.2.3",

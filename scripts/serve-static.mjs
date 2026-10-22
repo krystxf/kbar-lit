@@ -23,7 +23,11 @@ createServer(async (request, response) => {
     try {
       if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
     } catch {
-      if (!extname(file)) file = resolve(root, 'index.html');
+      if (!extname(file)) {
+        // Combined deployments need each SPA's own entry point on deep links.
+        const app = path.split('/')[1];
+        file = resolve(root, ['angular', 'vue'].includes(app) ? `${app}/index.html` : 'index.html');
+      }
     }
     const body = await readFile(file);
     response
