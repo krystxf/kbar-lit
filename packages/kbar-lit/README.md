@@ -1,6 +1,6 @@
 # kbar-lit
 
-A **Lit / Web Components rewrite of [kbar](https://github.com/timc1/kbar)**. The same composable command-menu approach, with a framework-independent action store and native custom elements. No React dependency.
+A **Lit / Web Components rewrite of [timc1/kbar](https://github.com/timc1/kbar)**, the original command-menu project by Tim Chang. The same composable command-menu approach, with a framework-independent action store and native custom elements. No React dependency.
 
 - Fuzzy, multi-word search across names, keywords, subtitles, and sections
 - Nested actions, scoped search, and Backspace navigation

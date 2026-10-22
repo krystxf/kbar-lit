@@ -1,6 +1,6 @@
 # kbar-lit monorepo
 
-A Lit / Web Components port of [kbar](https://github.com/timc1/kbar), with real framework integration examples. All examples consume the **same `kbar-lit` workspace package**. They do not use React kbar or reimplement the command menu.
+A **Lit / Web Components rewrite of [timc1/kbar](https://github.com/timc1/kbar)**, the original command-menu project by Tim Chang. This project adapts kbar to Lit and provides framework integration examples. All examples consume the **same `kbar-lit` workspace package**. They do not use React kbar or reimplement the command menu.
 
 The repository uses **pnpm and Turborepo** for dependency management, builds, development, and validation. The library implements the feature set of the pinned upstream kbar reference with Lit components and controllers. The [parity audit](./PARITY.md) maps each feature to its implementation and validation, and documents the framework adaptations.
 
